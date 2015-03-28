@@ -139,6 +139,8 @@ namespace flowTumn{
 
 						//now update.
 						now = ::std::chrono::high_resolution_clock::now();
+					} else {
+						flowTumn::sleepFor(1);
 					}
 
 					if (INT32_C(0) > count || INT32_C(0) < count) {

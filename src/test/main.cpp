@@ -102,7 +102,7 @@ void serviceTest() {
 
 void executorTest() {
 	const auto MULTIE_THREAD_MIN = 4;
-	const auto MULTIE_THREAD_MAX = 8;
+	const auto MULTIE_THREAD_MAX = 12;
 
 	auto exec1 = flowTumn::executor::createExecutor(1, 1);
 	auto exec2 = flowTumn::executor::createExecutor(MULTIE_THREAD_MIN, MULTIE_THREAD_MAX);
@@ -122,7 +122,7 @@ void executorTest() {
 	exec1->execute([&counter1](){++counter1; return counter1.load(); }, 50, 20);
 
 	//cycle 20ms.call count unlimit.(multie thread)
-	for (int i = 0; i < 100; ++i) {
+	for (int i = 0; i < 200; ++i) {
 		exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
 	}
 
