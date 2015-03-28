@@ -24,7 +24,9 @@ inline void join(::std::vector < ::std::thread>& threads) {
 			::std::begin(threads)
 		,	::std::end(threads)
 		,	[](::std::thread& v) {
-				v.join();
+				if (v.joinable()) {
+					v.join();
+				}
 			}
 	);
 }

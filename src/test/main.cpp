@@ -102,11 +102,17 @@ void serviceTest() {
 
 void executorTest() {
 	auto exec1 = flowTumn::executor::createExecutor(4, 8);
+	::std::atomic <int> counter{0};
 
 	assert(exec1->busy() == 0);
-	//assert(exec1->count() == 4);
+	assert(exec1->count() == 4);
 
+	exec1->execute([&counter](){++counter; return counter.load(); }, 0, 100);
 
+	//sleep.
+	flowTumn::sleepFor(3000);
+
+	assert(counter == 100);
 
 	//assert(exec1->busy() == 8);
 
