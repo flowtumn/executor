@@ -1,22 +1,12 @@
-#include <iostream>
-#include "ConcurrentQueue.hpp"
+﻿#include <iostream>
 #include <atomic>
 #include <algorithm>
 #include <iterator>
+#include <future>
+#include "ConcurrentQueue.hpp"
+#include "executor.hpp"
 
-namespace {
-	inline void join(::std::vector < ::std::thread>& threads) {
-		::std::for_each(
-				::std::begin(threads)
-			,	::std::end(threads)
-			,	[](::std::thread& v) {
-					v.join();
-				}
-		);
-	}
-};
-
-//3�b�҂��Ă���queue�Ƀf�[�^���l�߂āApop���邩
+//3秒待ってからqueueにデータを詰めて、popするか
 void queueTestPop() {
 	flowTumn::ConcurrentQueue <int> ints(10);
 	::std::thread thr(
@@ -36,7 +26,7 @@ void queueTestPop() {
 	
 }
 
-//push/pop���J��Ԃ��A�f�[�^���ɖ�肪�Ȃ���
+//push/popを繰り返し、データ数に問題がないか
 void queueTestPushPop() {
 	const auto POP_THREAD_COUNT = 5;
 	const auto PUSH_THREAD_COUNT = 10;
@@ -81,24 +71,54 @@ void queueTestPushPop() {
 			}
 	);
 
-	join(popThreads);
-	join(pushThreads);
+	flowTumn::join(popThreads);
+	flowTumn::join(pushThreads);
 
 	assert((PUSH_THREAD_COUNT * PUSH_MAX_COUNT) - (POP_THREAD_COUNT * POP_MAX_COUNT) == ints.size());
 
 }
 
+void serviceTest() {
+	const auto POST_COUNT = 0xFFFF;
+	flowTumn::service service;
+	::std::atomic <int> counter{ 0 };
+	auto thread = ::std::thread{ [&service](){service.run(); } };
+
+	//別スレッドで実行する状態になっているのでpostし続ける
+	for (int i = 0; i < POST_COUNT; ++i) {
+		service.post([&counter, i](){++counter;  assert(i == i); });
+	}
+
+	//全部流れたことを知るまで待機
+	::std::promise <void> future;
+
+	service.post([&future](){future.set_value(); });
+	future.get_future().get();
+	service.stop();
+	thread.join();
+
+	assert(counter == POST_COUNT);
+}
+
 void executorTest() {
+	auto exec1 = flowTumn::executor::createExecutor(4, 8);
+
+	assert(exec1->busy() == 0);
+	//assert(exec1->count() == 4);
+
+
+
+	//assert(exec1->busy() == 8);
 
 }
 
 void testAll() {
 	queueTestPop();
 	queueTestPushPop();
+	serviceTest();
 	executorTest();
 }
 
 int main(int argc, char **argv) {
 	testAll();
-	[](){::std::cout << "HelloWorld" << ::std::endl; }();
 }

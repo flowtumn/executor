@@ -1,4 +1,4 @@
-#ifndef CONCURRENTQUEUE_HPP_INCLUDE__
+﻿#ifndef CONCURRENTQUEUE_HPP_INCLUDE__
 #define CONCURRENTQUEUE_HPP_INCLUDE__
 
 #include <mutex>
@@ -6,23 +6,13 @@
 #include <chrono>
 #include <thread>
 #include <functional>
-#include <cerrno>
+#include "utils.hpp"
 
 namespace {
-	int64_t DEFAULT_SLEEP_MS = INT64_C(50);
+	int64_t DEFAULT_SLEEP_MS = INT64_C(10);
 };
 
 namespace flowTumn {
-
-template <typename T>
-inline
-::std::lock_guard <T> make_lock_guard(T& mutex) {
-	return ::std::lock_guard <T>(mutex);
-}
-
-inline void sleepFor(int64_t ms) {
-	::std::this_thread::sleep_for(::std::chrono::milliseconds(ms));
-}
 
 //ConccurentQueue.
 template <typename T>

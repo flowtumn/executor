@@ -1,4 +1,4 @@
-cmake_minimum_required (VERSION 2.8)
+﻿cmake_minimum_required (VERSION 2.8)
 
 project(executor)
 
@@ -14,6 +14,8 @@ set(
 set(
 	HEADERS
 	"${ROOT_DIR}/include/ConcurrentQueue.hpp"
+	"${ROOT_DIR}/include/Utils.hpp"
+	"${ROOT_DIR}/include/executor.hpp"
 )
 
 add_executable(executor ${SOURCES} ${HEADERS})
