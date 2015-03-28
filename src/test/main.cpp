@@ -101,21 +101,47 @@ void serviceTest() {
 }
 
 void executorTest() {
-	auto exec1 = flowTumn::executor::createExecutor(4, 8);
-	::std::atomic <int> counter{0};
+	const auto MULTIE_THREAD_MIN = 4;
+	const auto MULTIE_THREAD_MAX = 8;
+
+	auto exec1 = flowTumn::executor::createExecutor(1, 1);
+	auto exec2 = flowTumn::executor::createExecutor(MULTIE_THREAD_MIN, MULTIE_THREAD_MAX);
+
+	::std::atomic <int> counter1{0};
+	::std::atomic <int> counter2{0};
+	::std::atomic <int> counter3{0};
 
 	assert(exec1->busy() == 0);
-	assert(exec1->count() == 4);
+	assert(exec1->count() == 1);
 
-	exec1->execute([&counter](){++counter; return counter.load(); }, 0, 100);
+	assert(exec2->busy() == 0);
+	assert(exec2->count() == MULTIE_THREAD_MIN);
 
-	//sleep.
-	flowTumn::sleepFor(3000);
+	//cycle 20ms, call count total 100.(single thread)
+	exec1->execute([&counter1](){++counter1; return counter1.load(); }, 50, 20);
+	exec1->execute([&counter1](){++counter1; return counter1.load(); }, 50, 20);
 
-	assert(counter == 100);
+	//cycle 20ms.call count unlimit.(multie thread)
+	for (int i = 0; i < 100; ++i) {
+		exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
+	}
 
-	//assert(exec1->busy() == 8);
+	for (int i = 1; i <= 10; ++i) {
+		exec2->execute([&counter3]() {++counter3; return counter3.load(); }, i, 10);
+	}
 
+	flowTumn::sleepFor(5000);
+
+	assert(counter1 == 100);
+	assert(exec1->count() == 1);
+
+	assert(counter3 == 55);
+
+	//スレッド上限まで増えている
+	assert(exec2->count() == MULTIE_THREAD_MAX);
+
+	exec1->terminate();
+	exec2->terminate();
 }
 
 void testAll() {

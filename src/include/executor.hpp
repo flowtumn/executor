@@ -67,11 +67,10 @@ namespace flowTumn{
 			return this->busy_;
 		}
 
-		bool terminate() {
+		void terminate() {
 			this->alive_ = false;
 			this->service_.stop();
 			flowTumn::join(this->threads_);
-			return true;
 		}
 
 		//create.
@@ -89,44 +88,66 @@ namespace flowTumn{
 
 		//exec.
 		template <typename F>
-		void execute(F f, uint32_t cycleMS = UINT32_C(0), int32_t count = INT32_C(-1)) {
-			this->service_.post(
-				[this, f, cycleMS, count]() mutable {
-					++this->busy_;
-
-					f();
-
-					--count;
-					if (INT32_C(0) < count) {
-						this->execute(f, cycleMS, count);
-					}
-
-					--this->busy_;
-				}
-			);
+		void execute(F f, int32_t count = INT32_C(0), uint32_t cycleMS = UINT32_C(0)) {
+			//0 => 1
+			count = (INT32_C(0) == count) ? 1 : count;
+			this->execute(f, ::std::chrono::high_resolution_clock::now(), count, cycleMS);
 		}
 
 	private:
 		//thread append.
 		void append() {
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
-			this->threads_.emplace_back(
-				::std::thread{
-					::std::bind(
-							&executor::core
-						,	this
-					)
-				}
-			);
+
+			if (this->threadCount_ < this->maxThread_) {
+				++this->threadCount_;
+				this->threads_.emplace_back(
+					::std::thread{
+						::std::bind(
+								&executor::core
+							,	this
+						)
+					}
+				);
+			}
 		}
 
 		//thread core.
 		void core() {
-			++this->threadCount_;
 			while (this->alive_) {
 				this->service_.run();
 			}
 			--this->threadCount_;
+		}
+
+		template <typename F>
+		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS) {
+			this->service_.post(
+				[this, f, now, cycleMS, count]() mutable {
+					++this->busy_;
+
+					if (this->busy_ == this->threadCount_) {
+						if (this->threadCount_ < this->maxThread_) {
+							//busy all.. append.
+							this->append();
+						}
+					}
+
+					if (::std::chrono::milliseconds(cycleMS) < ::std::chrono::high_resolution_clock::now() - now) {
+						f();
+						--count;
+
+						//now update.
+						now = ::std::chrono::high_resolution_clock::now();
+					}
+
+					if (INT32_C(0) > count || INT32_C(0) < count) {
+						this->execute(f, now, count, cycleMS);
+					}
+
+					--this->busy_;
+				}
+			);
 		}
 
 		service service_;
