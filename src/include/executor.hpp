@@ -68,8 +68,10 @@ namespace flowTumn{
 
 		void terminate() {
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
+
 			this->alive_ = false;
 			this->service_.stop();
+
 			flowTumn::join(this->threads_);
 		}
 
@@ -100,15 +102,20 @@ namespace flowTumn{
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
 
 			if (this->alive_ && (this->threadCount_ < this->maxThread_)) {
+				//thread callback.
 				::std::promise <void> promise;
-				++this->threadCount_;
+				auto f = [&promise]() {
+					flowTumn::sleepFor(1);
+					promise.set_value();
+				};
+
 				this->threads_.emplace_back(
 					::std::thread{
-						::std::bind(
-								&executor::core
-							,	this
-							,	::std::ref(promise)
-						)
+						[this, &f]() {
+							++this->threadCount_;
+							this->core(f);
+							--this->threadCount_;
+						}
 					}
 				);
 
@@ -117,16 +124,22 @@ namespace flowTumn{
 		}
 
 		//thread core.
-		void core(::std::promise <void>& notify) {
-			notify.set_value();
+		template <typename F>
+		void core(F f) {
+			// f execute to another thread.
+			this->service_.post(f);
+
 			while (this->alive_) {
 				this->service_.run();
 			}
-			--this->threadCount_;
 		}
 
 		template <typename F>
 		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS) {
+
+			if (!this->alive_) {
+				return;
+			}
 
 			if (this->busy() + 1 <= this->threadCount_) {
 				if (this->threadCount_ < this->maxThread_) {
