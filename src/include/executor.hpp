@@ -68,6 +68,7 @@ namespace flowTumn{
 		}
 
 		void terminate() {
+			auto lock = flowTumn::make_lock_guard(this->mutex_);
 			this->alive_ = false;
 			this->service_.stop();
 			flowTumn::join(this->threads_);
@@ -99,7 +100,7 @@ namespace flowTumn{
 		void append() {
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
 
-			if (this->threadCount_ < this->maxThread_) {
+			if (this->alive_ && (this->threadCount_ < this->maxThread_)) {
 				++this->threadCount_;
 				this->threads_.emplace_back(
 					::std::thread{

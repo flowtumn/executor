@@ -139,9 +139,6 @@ void executorTest() {
 
 	//スレッド上限まで増えている
 	assert(exec2->count() == MULTIE_THREAD_MAX);
-
-	exec1->terminate();
-	exec2->terminate();
 }
 
 void testAll() {
