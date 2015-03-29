@@ -43,8 +43,6 @@ namespace flowTumn{
 	};
 
 	class executor {
-		using executor_ptr = ::std::unique_ptr <executor>;
-
 		executor(uint32_t minThread, uint32_t maxThread)
 			: minThread_(minThread)
 			, maxThread_(maxThread)
@@ -54,6 +52,7 @@ namespace flowTumn{
 		}
 
 	public:
+		using executor_ptr = ::std::unique_ptr <executor>;
 
 		~executor() {
 			this->terminate();
@@ -101,20 +100,25 @@ namespace flowTumn{
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
 
 			if (this->alive_ && (this->threadCount_ < this->maxThread_)) {
+				::std::promise <void> promise;
 				++this->threadCount_;
 				this->threads_.emplace_back(
 					::std::thread{
 						::std::bind(
 								&executor::core
 							,	this
+							,	::std::ref(promise)
 						)
 					}
 				);
+
+				promise.get_future().get();
 			}
 		}
 
 		//thread core.
-		void core() {
+		void core(::std::promise <void>& notify) {
+			notify.set_value();
 			while (this->alive_) {
 				this->service_.run();
 			}
@@ -123,16 +127,17 @@ namespace flowTumn{
 
 		template <typename F>
 		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS) {
+
+			if (this->busy() + 1 <= this->threadCount_) {
+				if (this->threadCount_ < this->maxThread_) {
+					//busy all.. append.
+					this->append();
+				}
+			}
+
 			this->service_.post(
 				[this, f, now, cycleMS, count]() mutable {
 					++this->busy_;
-
-					if (this->busy_ == this->threadCount_) {
-						if (this->threadCount_ < this->maxThread_) {
-							//busy all.. append.
-							this->append();
-						}
-					}
 
 					if (::std::chrono::milliseconds(cycleMS) < ::std::chrono::high_resolution_clock::now() - now) {
 						f();

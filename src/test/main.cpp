@@ -141,6 +141,41 @@ void executorTest() {
 	assert(exec2->count() == MULTIE_THREAD_MAX);
 }
 
+//busy check.
+void testFunc(flowTumn::executor::executor_ptr& p, int busy) {
+	if (p) {
+		::std::cout << "call Busy -> " << busy << ::std::endl;
+		if (busy == 7) {
+			int a = 0xff;
+		}
+
+		auto c = p->count();
+		//assert(p->busy() == busy);
+		flowTumn::sleepFor(5000);
+		::std::cout << "END -> " << busy << ::std::endl;
+	} else {
+		assert(false && "executor nullptr.");
+	}
+}
+
+auto gen(flowTumn::executor::executor_ptr& p, int busy) -> decltype(::std::bind(&testFunc, ::std::ref(p), busy)) {
+	return ::std::bind(&testFunc, ::std::ref(p), busy);
+}
+
+void executorTest2() {
+	const auto THREAD_MIN = 1;
+	const auto THREAD_MAX = 12;
+
+	auto exec = flowTumn::executor::createExecutor(THREAD_MIN, THREAD_MAX);
+	::std::atomic <bool> notify{false};
+
+	for (int i = 0; i < THREAD_MAX; ++i) {
+		exec->execute(gen(exec, i + 1));
+	}
+
+	flowTumn::sleepFor(3000);
+}
+
 void testAll() {
 	queueTestPop();
 	queueTestPushPop();
@@ -149,5 +184,7 @@ void testAll() {
 }
 
 int main(int argc, char **argv) {
+	executorTest2();
+	return 0;
 	testAll();
 }
