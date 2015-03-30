@@ -1,9 +1,10 @@
-﻿# C++ Multi Thread Library.
+﻿C++11 Multi Thread Library.
+=============================
 
 this library have the following functions.
 
-1: Execution of periodic task.
-2: Specified number of times executes a task.
-3: Dynamic thread management.
+* Execution of periodic task.
+* Specified number of times executes a task.
+* Dynamic thread management.
 
 this library, It will enjoy your multi threaded.
