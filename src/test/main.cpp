@@ -25,7 +25,7 @@ namespace {
 		);
 
 		repeatCall(
-			[&queue](int32_t i) {assert(i == queue.pop(flowTumn::ConcurrentQueue <int>::popDefaultFunc())); }
+				[&queue](int32_t i) {assert(i == queue.pop(flowTumn::ConcurrentQueue <int>::popDefaultFunc())); }
 			,	TEST_COUNT
 		);
 	}
@@ -150,8 +150,9 @@ namespace {
 
 		//cycle 20ms.call count unlimit.(multie thread)
 		repeatCall(
-				[&exec2, &counter2](int32_t i) {
-					exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
+				[&exec2, &counter2](int32_t) {
+					auto a = exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
+					::std::cout << a << ::std::endl;
 				}
 			,	200
 		);
@@ -176,7 +177,7 @@ namespace {
 	}
 
 	//busy check.
-	void testFunc(flowTumn::executor::executor_ptr& p, int busy) {
+	void testFunc(flowTumn::executor::executor_ptr& p, uint32_t busy) {
 		if (p) {
 			assert(p->busy() == busy);
 			flowTumn::sleepFor(5000);
@@ -218,7 +219,7 @@ namespace {
 
 };
 
-int main(int argc, char **argv) {
+int main(int, char **) {
 	testAll();
 	return 0;
 }

@@ -44,11 +44,12 @@ namespace flowTumn{
 
 	class executor {
 		executor(uint32_t minThread, uint32_t maxThread)
-			: minThread_(minThread)
-			, maxThread_(maxThread)
-			, alive_(true)
-			, busy_(0)
-			, threadCount_(0) {
+			:	minThread_(minThread)
+			,	maxThread_(maxThread)
+			,	alive_(true)
+			,	busy_(0)
+			,	threadCount_(0)
+			,	id_(0) {
 		}
 
 	public:
@@ -90,10 +91,11 @@ namespace flowTumn{
 
 		//exec.
 		template <typename F>
-		void execute(F f, int32_t count = INT32_C(0), uint32_t cycleMS = UINT32_C(0)) {
+		int64_t execute(F f, int32_t count = INT32_C(0), uint32_t cycleMS = UINT32_C(0)) {
 			//0 => 1
 			count = (INT32_C(0) == count) ? 1 : count;
-			this->execute(f, ::std::chrono::high_resolution_clock::now(), count, cycleMS);
+			this->execute(f, ::std::chrono::high_resolution_clock::now(), count, cycleMS, ++this->id_);
+			return this->id_;
 		}
 
 	private:
@@ -135,7 +137,7 @@ namespace flowTumn{
 		}
 
 		template <typename F>
-		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS) {
+		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS, int64_t uniqueId) {
 
 			if (!this->alive_) {
 				return;
@@ -149,7 +151,7 @@ namespace flowTumn{
 			}
 
 			this->service_.post(
-				[this, f, now, cycleMS, count]() mutable {
+				[this, f, now, cycleMS, count, uniqueId]() mutable {
 					++this->busy_;
 
 					if (::std::chrono::milliseconds(cycleMS) < ::std::chrono::high_resolution_clock::now() - now) {
@@ -163,7 +165,7 @@ namespace flowTumn{
 					}
 
 					if (INT32_C(0) > count || INT32_C(0) < count) {
-						this->execute(f, now, count, cycleMS);
+						this->execute(f, now, count, cycleMS, uniqueId);
 					}
 
 					--this->busy_;
@@ -178,6 +180,7 @@ namespace flowTumn{
 		::std::atomic <bool> alive_;
 		::std::atomic <uint32_t> busy_;
 		::std::atomic <uint32_t> threadCount_;
+		::std::atomic <int64_t> id_;
 		::std::thread threadCycle_;
 		::std::vector < ::std::thread> threads_;
 	};
