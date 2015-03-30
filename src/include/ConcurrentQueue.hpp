@@ -18,6 +18,8 @@ namespace flowTumn {
 template <typename T>
 class ConcurrentQueue {
 public:
+	using pop_func = ::std::function <bool()>;
+
 	ConcurrentQueue(int64_t popCycle = DEFAULT_SLEEP_MS)
 		: popCycle_(popCycle) {;}
 
@@ -26,7 +28,7 @@ public:
 		this->queue_.push(v);
 	}
 
-	T pop(::std::function <bool ()> f) {
+	T pop(pop_func f) {
 		while (f()) {
 			{
 				auto lock = make_lock_guard(this->mutex_);
@@ -47,9 +49,13 @@ public:
 		return this->queue_.size();
 	}
 
+	static auto popDefaultFunc() ->pop_func {
+		return[]() {return true; };
+	}
+
+	mutable ::std::mutex mutex_;
 	::std::queue <T> queue_;
 	int64_t popCycle_;
-	mutable ::std::mutex mutex_;
 };
 
 };

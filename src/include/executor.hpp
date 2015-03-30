@@ -43,8 +43,6 @@ namespace flowTumn{
 	};
 
 	class executor {
-		using executor_ptr = ::std::unique_ptr <executor>;
-
 		executor(uint32_t minThread, uint32_t maxThread)
 			: minThread_(minThread)
 			, maxThread_(maxThread)
@@ -54,6 +52,7 @@ namespace flowTumn{
 		}
 
 	public:
+		using executor_ptr = ::std::unique_ptr <executor>;
 
 		~executor() {
 			this->terminate();
@@ -69,8 +68,10 @@ namespace flowTumn{
 
 		void terminate() {
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
+
 			this->alive_ = false;
 			this->service_.stop();
+
 			flowTumn::join(this->threads_);
 		}
 
@@ -101,38 +102,55 @@ namespace flowTumn{
 			auto lock = flowTumn::make_lock_guard(this->mutex_);
 
 			if (this->alive_ && (this->threadCount_ < this->maxThread_)) {
-				++this->threadCount_;
+				//thread callback.
+				::std::promise <void> promise;
+				auto f = [&promise]() {
+					flowTumn::sleepFor(1);
+					promise.set_value();
+				};
+
 				this->threads_.emplace_back(
 					::std::thread{
-						::std::bind(
-								&executor::core
-							,	this
-						)
+						[this, &f]() {
+							++this->threadCount_;
+							this->core(f);
+							--this->threadCount_;
+						}
 					}
 				);
+
+				promise.get_future().get();
 			}
 		}
 
 		//thread core.
-		void core() {
+		template <typename F>
+		void core(F f) {
+			// f execute to another thread.
+			this->service_.post(f);
+
 			while (this->alive_) {
 				this->service_.run();
 			}
-			--this->threadCount_;
 		}
 
 		template <typename F>
 		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS) {
+
+			if (!this->alive_) {
+				return;
+			}
+
+			if (this->busy() + 1 <= this->threadCount_) {
+				if (this->threadCount_ < this->maxThread_) {
+					//busy all.. append.
+					this->append();
+				}
+			}
+
 			this->service_.post(
 				[this, f, now, cycleMS, count]() mutable {
 					++this->busy_;
-
-					if (this->busy_ == this->threadCount_) {
-						if (this->threadCount_ < this->maxThread_) {
-							//busy all.. append.
-							this->append();
-						}
-					}
 
 					if (::std::chrono::milliseconds(cycleMS) < ::std::chrono::high_resolution_clock::now() - now) {
 						f();
