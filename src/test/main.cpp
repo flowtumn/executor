@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <iterator>
 #include <future>
+#include <cassert>
 #include "ConcurrentQueue.hpp"
 #include "executor.hpp"
 
@@ -151,8 +152,7 @@ namespace {
 		//cycle 20ms.call count unlimit.(multie thread)
 		repeatCall(
 				[&exec2, &counter2](int32_t) {
-					auto a = exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
-					::std::cout << a << ::std::endl;
+					exec2->execute([&counter2]() {++counter2; return counter2.load(); }, -1, 20);
 				}
 			,	200
 		);
