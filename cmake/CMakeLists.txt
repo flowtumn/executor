@@ -21,7 +21,7 @@ set(
 
 set(
 	HEADERS
-	"${ROOT_DIR}/include/ConcurrentQueue.hpp"
+	"${ROOT_DIR}/include/concurrent_queue.hpp"
 	"${ROOT_DIR}/include/utils.hpp"
 	"${ROOT_DIR}/include/executor.hpp"
 )

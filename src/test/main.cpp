@@ -4,7 +4,7 @@
 #include <iterator>
 #include <future>
 #include <cassert>
-#include "ConcurrentQueue.hpp"
+#include "concurrent_queue.hpp"
 #include "executor.hpp"
 
 namespace {
@@ -18,7 +18,7 @@ namespace {
 	//queue FIFO check test.
 	void queueSimpleTest() {
 		const auto TEST_COUNT = 0xFFFF;
-		flowTumn::ConcurrentQueue <int> queue;
+		flowTumn::concurrent_queue <int> queue;
 
 		repeatCall(
 				[&queue](int32_t i) {queue.push(i); }
@@ -26,14 +26,14 @@ namespace {
 		);
 
 		repeatCall(
-				[&queue](int32_t i) {assert(i == queue.pop(flowTumn::ConcurrentQueue <int>::popDefaultFunc())); }
+				[&queue](int32_t i) {assert(i == queue.pop(flowTumn::concurrent_queue <int>::popDefaultFunc())); }
 			,	TEST_COUNT
 		);
 	}
 
 	//3秒待ってからqueueにデータを詰めて、popするか
 	void queueTestPop() {
-		flowTumn::ConcurrentQueue <int> ints(10);
+		flowTumn::concurrent_queue <int> ints(10);
 			::std::thread thr(
 				[&ints]() {
 				auto v = ints.pop([](){return true; });
@@ -58,7 +58,7 @@ namespace {
 		const auto POP_MAX_COUNT = 1000;
 		const auto PUSH_MAX_COUNT = 2000;
 
-		flowTumn::ConcurrentQueue <int> ints(10);
+		flowTumn::concurrent_queue <int> ints(10);
 		::std::atomic <bool> terminate{ false };
 
 		::std::vector < ::std::thread> popThreads;
