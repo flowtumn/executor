@@ -5,7 +5,7 @@
 #include <atomic>
 #include <vector>
 #include <memory>
-#include "ConcurrentQueue.hpp"
+#include "concurrent_queue.hpp"
 #include "utils.hpp"
 
 namespace flowTumn{
@@ -38,7 +38,7 @@ namespace flowTumn{
 		}
 
 	private:
-		flowTumn::ConcurrentQueue <F> queue_;
+		flowTumn::concurrent_queue <F> queue_;
 		::std::atomic <bool> terminate_;
 	};
 

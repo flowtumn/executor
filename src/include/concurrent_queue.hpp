@@ -16,11 +16,11 @@ namespace flowTumn {
 
 //ConccurentQueue.
 template <typename T>
-class ConcurrentQueue {
+class concurrent_queue {
 public:
 	using pop_func = ::std::function <bool()>;
 
-	ConcurrentQueue(int64_t popCycle = DEFAULT_SLEEP_MS)
+	concurrent_queue(int64_t popCycle = DEFAULT_SLEEP_MS)
 		: popCycle_(popCycle) {;}
 
 	void push(const T& v) {
