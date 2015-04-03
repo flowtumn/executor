@@ -8,3 +8,14 @@ this library have the following functions.
 * Dynamic thread management.
 
 this library, It will enjoy your multi threaded.
+
+- - -
+
+### Procedure of execution of the test.
+
+```sh
+$ cd executor/cmake
+$ cmake .
+$ cmake --build .
+$ ctest
+```
