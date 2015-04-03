@@ -26,7 +26,7 @@ inline void sleepFor(int64_t ms) {
 template <typename T>
 inline void join(T& threads) {
 	static_assert(
-			::std::is_base_of <T::value_type, ::std::thread>::value
+			::std::is_base_of <typename T::value_type, ::std::thread>::value
 		,	"T must be a descendant of std::thread."
 	);
 

@@ -1,6 +1,8 @@
 ﻿cmake_minimum_required (VERSION 2.8)
 
-project(executor)
+set (PROJECT_NAME executor)
+
+project(${PROJECT_NAME})
 
 set(ROOT_DIR "../src")
 
@@ -26,4 +28,8 @@ set(
 	"${ROOT_DIR}/include/executor.hpp"
 )
 
-add_executable(executor ${SOURCES} ${HEADERS})
+add_executable(${PROJECT_NAME} ${SOURCES} ${HEADERS})
+
+enable_testing()
+
+add_test(executor ${PROJECT_NAME})
