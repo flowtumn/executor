@@ -208,6 +208,29 @@ namespace {
 		flowTumn::sleepFor(3000);
 	}
 
+	void taskStopTest() {
+		const auto THREAD_MIN = 1;
+		const auto THREAD_MAX = 4;
+		const auto CREATE_TASK_COUNT = 5;
+
+		auto exec = flowTumn::executor::createExecutor(THREAD_MIN, THREAD_MAX);
+		::std::atomic <int32_t> totalCount{ 0 };
+		::std::vector <int64_t> taskId;
+
+		auto id1 = exec->execute([](){return;});
+		assert(true == exec->stopTask(id1, true));
+
+		for (int i = 0; i < CREATE_TASK_COUNT; ++i) {
+			taskId.emplace_back(exec->execute([&totalCount]() {++totalCount; }, 100, 20));
+		}
+
+		flowTumn::sleepFor(3000);
+
+		for (auto& v : taskId) {
+			assert(true == exec->stopTask(v, true));
+		}
+	}
+
 	void testAll() {
 		queueSimpleTest();
 		queueTestPop();
@@ -215,6 +238,7 @@ namespace {
 		serviceTest();
 		executorTest();
 		executorSequenceTest();
+		//taskStopTest();
 	}
 
 };

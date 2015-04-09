@@ -33,7 +33,7 @@ public:
 			{
 				auto lock = make_lock_guard(this->mutex_);
 				if (0 < this->queue_.size()) {
-					auto v = this->queue_.front();
+					auto v = ::std::move(this->queue_.front());
 					this->queue_.pop();
 					return v;
 				}
