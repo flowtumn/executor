@@ -211,24 +211,42 @@ namespace {
 	void taskStopTest() {
 		const auto THREAD_MIN = 1;
 		const auto THREAD_MAX = 4;
-		const auto CREATE_TASK_COUNT = 5;
+		const auto CREATE_TASK_COUNT = 4;
+		const auto CYCLE_TIME = 100;
 
 		auto exec = flowTumn::executor::createExecutor(THREAD_MIN, THREAD_MAX);
-		::std::atomic <int32_t> totalCount{ 0 };
+		::std::atomic <int32_t> totalCount{0};
+		::std::atomic <bool> fire{false};
 		::std::vector <int64_t> taskId;
 
 		auto id1 = exec->execute([](){return;});
 		assert(true == exec->stopTask(id1, true));
 
 		for (int i = 0; i < CREATE_TASK_COUNT; ++i) {
-			taskId.emplace_back(exec->execute([&totalCount]() {++totalCount; }, 100, 20));
+			taskId.emplace_back(
+				exec->execute(
+						[&fire, &totalCount]() {
+							while (!fire) {
+								flowTumn::sleepFor(1);
+							}
+							++totalCount;
+						}
+					,	100
+					,	 CYCLE_TIME
+				)
+			);
 		}
 
-		flowTumn::sleepFor(3000);
+		fire = true;
+		flowTumn::sleepFor(CYCLE_TIME + 10);
 
+		//stop Tasks.
 		for (auto& v : taskId) {
 			assert(true == exec->stopTask(v, true));
 		}
+
+		//call count CREATE_TASK_COUNT.
+		assert(CREATE_TASK_COUNT == totalCount);
 	}
 
 	void testAll() {
@@ -238,7 +256,7 @@ namespace {
 		serviceTest();
 		executorTest();
 		executorSequenceTest();
-		//taskStopTest();
+		taskStopTest();
 	}
 
 };

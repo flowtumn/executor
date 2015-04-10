@@ -47,7 +47,7 @@ namespace flowTumn{
 		enum class TaskState {
 			TaskStart,
 			TaskSuspend,	//reserve
-			TaskEnd,
+			TaskFinish,
 			TaskStop,
 			TaskStateNone,
 		};
@@ -100,16 +100,20 @@ namespace flowTumn{
 
 		//stop task.
 		bool stopTask(int64_t id, bool blocking = false) {
+			if (TaskState::TaskFinish == this->getAndSetTaskState(id, TaskState::TaskStop)) {
+				return true;
+			}
+
 			this->setTaskState(id, TaskState::TaskStop);
 
 			while (blocking) {
-				if (TaskState::TaskEnd == this->getTaskState(id)) {
+				if (TaskState::TaskFinish == this->getTaskState(id)) {
 					return true;
 				}
 				flowTumn::sleepFor(20);
 			}
 
-			return (TaskState::TaskEnd == this->getTaskState(id));
+			return (TaskState::TaskFinish == this->getTaskState(id));
 		}
 
 		//exec.
@@ -125,14 +129,21 @@ namespace flowTumn{
 		//task start.
 		void setTaskState(int64_t id, TaskState state) {
 			auto lock = flowTumn::make_lock_guard(this->taskMutex_);
-
 			this->taskMap_[id] = state;
-			return;
+		}
+
+		//task state get and set.
+		TaskState getAndSetTaskState(int64_t id, TaskState state) {
+			auto result = this->getTaskState(id);
+
+			this->setTaskState(id, state);
+			return result;
 		}
 
 		//task state.
 		TaskState getTaskState(int64_t id) {
 			auto lock = flowTumn::make_lock_guard(this->taskMutex_);
+
 			if (this->taskMap_.end() != this->taskMap_.find(id)) {
 				return this->taskMap_[id];
 			}
@@ -178,16 +189,16 @@ namespace flowTumn{
 		}
 
 		template <typename F>
-		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS, int64_t uniqueId) {
+		void execute(F f, decltype(::std::chrono::high_resolution_clock::now()) now, int32_t count, uint32_t cycleMS, int64_t id) {
 
 			if (!this->alive_) {
 				return;
 			}
 
 			//task check.
-			if (TaskState::TaskStop == this->getTaskState(uniqueId)) {
-				//abort.
-				this->setTaskState(uniqueId, TaskState::TaskEnd);
+			if (TaskState::TaskStop == this->getTaskState(id)) {
+				//task end.
+				this->setTaskState(id, TaskState::TaskFinish);
 				return;
 			}
 
@@ -199,7 +210,7 @@ namespace flowTumn{
 			}
 
 			this->service_.post(
-				[this, f, now, cycleMS, count, uniqueId]() mutable {
+				[this, f, now, cycleMS, count, id]() mutable {
 					++this->busy_;
 
 					if (::std::chrono::milliseconds(cycleMS) < ::std::chrono::high_resolution_clock::now() - now) {
@@ -213,10 +224,10 @@ namespace flowTumn{
 					}
 
 					if (INT32_C(0) > count || INT32_C(0) < count) {
-						this->execute(f, now, count, cycleMS, uniqueId);
+						this->execute(f, now, count, cycleMS, id);
 					} else {
 						//end task.
-						this->setTaskState(uniqueId, TaskState::TaskEnd);
+						this->setTaskState(id, TaskState::TaskFinish);
 					}
 
 					--this->busy_;
