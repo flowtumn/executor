@@ -215,8 +215,6 @@ namespace {
 		const auto CYCLE_TIME = 100;
 
 		auto exec = flowTumn::executor::createExecutor(THREAD_MIN, THREAD_MAX);
-		::std::atomic <int32_t> totalCount{0};
-		::std::atomic <bool> fire{false};
 		::std::vector <int64_t> taskId;
 
 		auto id1 = exec->execute([](){return;});
@@ -225,28 +223,36 @@ namespace {
 		for (int i = 0; i < CREATE_TASK_COUNT; ++i) {
 			taskId.emplace_back(
 				exec->execute(
-						[&fire, &totalCount]() {
-							while (!fire) {
-								flowTumn::sleepFor(1);
-							}
-							++totalCount;
+						[]() {
+						return;
 						}
 					,	100
 					,	 CYCLE_TIME
 				)
 			);
+
+			assert(flowTumn::executor::TaskState::TaskRunning == exec->getTaskState(taskId.at(i)));
 		}
 
-		fire = true;
-		flowTumn::sleepFor(CYCLE_TIME + 10);
+		repeatCall(
+				[&exec, &taskId](int32_t idx) {
+					auto id = taskId.at(idx);
+
+					if (id & 0x01) {
+						assert(flowTumn::executor::TaskState::TaskFinish != exec->getTaskState(id));
+					} else {
+						//even.
+						assert(true == exec->stopTask(id, true));
+						assert(flowTumn::executor::TaskState::TaskFinish == exec->getTaskState(id));
+					}
+				}
+			,	CREATE_TASK_COUNT
+		);
 
 		//stop Tasks.
 		for (auto& v : taskId) {
 			assert(true == exec->stopTask(v, true));
 		}
-
-		//call count CREATE_TASK_COUNT.
-		assert(CREATE_TASK_COUNT == totalCount);
 	}
 
 	void testAll() {

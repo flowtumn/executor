@@ -44,14 +44,6 @@ namespace flowTumn{
 	};
 
 	class executor {
-		enum class TaskState {
-			TaskStart,
-			TaskSuspend,	//reserve
-			TaskFinish,
-			TaskStop,
-			TaskStateNone,
-		};
-
 		executor(uint32_t minThread, uint32_t maxThread)
 			:	minThread_(minThread)
 			,	maxThread_(maxThread)
@@ -63,6 +55,14 @@ namespace flowTumn{
 
 	public:
 		using executor_ptr = ::std::unique_ptr <executor>;
+
+		enum class TaskState {
+			TaskRunning,
+			TaskSuspend,	//reserve
+			TaskFinish,
+			TaskStop,
+			TaskStateNone,
+		};
 
 		~executor() {
 			this->terminate();
@@ -96,6 +96,17 @@ namespace flowTumn{
 				return p;
 			}
 			return nullptr;
+		}
+
+		//task state.
+		TaskState getTaskState(int64_t id) {
+			auto lock = flowTumn::make_lock_guard(this->taskMutex_);
+
+			if (this->taskMap_.end() != this->taskMap_.find(id)) {
+				return this->taskMap_[id];
+			}
+
+			return TaskState::TaskStateNone;
 		}
 
 		//stop task.
@@ -138,17 +149,6 @@ namespace flowTumn{
 
 			this->setTaskState(id, state);
 			return result;
-		}
-
-		//task state.
-		TaskState getTaskState(int64_t id) {
-			auto lock = flowTumn::make_lock_guard(this->taskMutex_);
-
-			if (this->taskMap_.end() != this->taskMap_.find(id)) {
-				return this->taskMap_[id];
-			}
-
-			return TaskState::TaskStateNone;
 		}
 
 		//thread append.
@@ -196,7 +196,9 @@ namespace flowTumn{
 			}
 
 			//task check.
-			if (TaskState::TaskStop == this->getTaskState(id)) {
+			if (TaskState::TaskStop != this->getTaskState(id)) {
+				this->setTaskState(id, TaskState::TaskRunning);
+			} else {
 				//task end.
 				this->setTaskState(id, TaskState::TaskFinish);
 				return;
