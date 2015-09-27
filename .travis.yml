@@ -1,0 +1,11 @@
+language: cpp
+compiler:
+    - gcc-4.8
+script:
+    - cd ./cmake
+    - cmake ./
+    - cmake --build ./
+    - ctest
+install:
+    - sudo apt-get update
+    - sudo apt-get -qq install cmake
