@@ -19,3 +19,7 @@ $ cmake .
 $ cmake --build .
 $ ctest
 ```
+
+- - -
+
+[![Build Status](https://api.travis-ci.org/flowtumn/executor.svg)](https://travis-ci.org/flowtumn/executor)
