@@ -1,6 +1,5 @@
 language: cpp
 compiler:
-//    - clang
     - gcc
 before_install:
     # g++4.8.1
